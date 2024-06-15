@@ -26,7 +26,7 @@ Sample configuration update to `~/.assembllm/config.yaml`:
 
 ```yaml
   - name: anthropic
-    source: https://github.com/bradyjoslin/assembllm-openai-go/releases/latest/download/assembllm-anthropic-go.wasm
+    source: https://github.com/bradyjoslin/assembllm-anthropic-go/releases/latest/download/assembllm-anthropic-go.wasm
     hash: 
     apiKey: ANTHROPIC_API_KEY
     url: api.anthropic.com
