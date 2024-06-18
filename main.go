@@ -81,8 +81,8 @@ type CompletionToolInput struct {
 }
 
 type Output struct {
-    Name  string                 `json:"name"`
-    Input map[string]interface{} `json:"input"`
+	Name  string                 `json:"name"`
+	Input map[string]interface{} `json:"input"`
 }
 
 var models = []Model{
@@ -182,116 +182,120 @@ func (cReq CompletionRequest) getCompletionsResponse() (CompletionsResponse, err
 }
 
 func getConfigValues() (string, string, float64, string, error) {
-    api_key, ok := pdk.GetConfig("api_key")
-    if !ok {
-        return "", "", 0, "", errors.New("api_key empty")
-    }
+	api_key, ok := pdk.GetConfig("api_key")
+	if !ok {
+		return "", "", 0, "", errors.New("api_key empty")
+	}
 
-    role, ok := pdk.GetConfig("role")
-    if !ok {
-        pdk.Log(pdk.LogInfo, "Role not set")
-    }
+	role, ok := pdk.GetConfig("role")
+	if !ok {
+		pdk.Log(pdk.LogInfo, "Role not set")
+	}
 
-    requested_temperature, _ := pdk.GetConfig("temperature")
-    if requested_temperature == "" {
-        pdk.Log(pdk.LogInfo, "Temperature not set, using default value")
-        requested_temperature = "0.7"
-    }
+	requested_temperature, _ := pdk.GetConfig("temperature")
+	if requested_temperature == "" {
+		pdk.Log(pdk.LogInfo, "Temperature not set, using default value")
+		requested_temperature = "0.7"
+	}
 
-    temperature, err := setTemperature(requested_temperature)
-    if err != nil {
-        return "", "", 0, "", err
-    }
+	temperature, err := setTemperature(requested_temperature)
+	if err != nil {
+		return "", "", 0, "", err
+	}
 
-    requested_model, ok := pdk.GetConfig("model")
-    if !ok {
-        pdk.Log(pdk.LogInfo, "Model not set, using default value")
-        requested_model = models[0].Name
-    }
+	requested_model, ok := pdk.GetConfig("model")
+	if !ok {
+		pdk.Log(pdk.LogInfo, "Model not set, using default value")
+		requested_model = models[0].Name
+	}
 
-    model, err := setModel(requested_model)
-    if err != nil {
-        return "", "", 0, "", err
-    }
+	model, err := setModel(requested_model)
+	if err != nil {
+		return "", "", 0, "", err
+	}
 
-    return api_key, role, temperature, model, nil
+	return api_key, role, temperature, model, nil
 }
 
 func createCompletionRequest(api_key, role string, temperature float64, model string, messages []Message, tools []Tool) CompletionRequest {
-    return CompletionRequest{
-        Body: RequestBody{
-            Model:       model,
-            Temperature: temperature,
-            MaxTokens:   MAXTOKENS,
-            System:      role,
-            Tools:       tools,
-            Messages:    messages,
-        },
-        ApiKey: api_key,
-        Url:    "https://api.anthropic.com/v1/messages",
-    }
+	return CompletionRequest{
+		Body: RequestBody{
+			Model:       model,
+			Temperature: temperature,
+			MaxTokens:   MAXTOKENS,
+			System:      role,
+			Tools:       tools,
+			Messages:    messages,
+		},
+		ApiKey: api_key,
+		Url:    "https://api.anthropic.com/v1/messages",
+	}
 }
 
 //go:export completion
 func Completion() int32 {
-    prompt := pdk.InputString()
+	prompt := pdk.InputString()
 
-    api_key, role, temperature, model, err := getConfigValues()
-    if err != nil {
-        pdk.Log(pdk.LogError, fmt.Sprintf("Error getting config values: %v", err.Error()))
-        return 1
-    }
+	api_key, role, temperature, model, err := getConfigValues()
+	if err != nil {
+		pdk.Log(pdk.LogError, fmt.Sprintf("Error getting config values: %v", err.Error()))
+		return 1
+	}
 
-    pdk.Log(pdk.LogInfo, "Prompt: "+prompt)
+	pdk.Log(pdk.LogInfo, "Prompt: "+prompt)
 
-    completionRequest := createCompletionRequest(api_key, role, temperature, model, []Message{{Role: "user", Content: prompt}}, nil)
+	completionRequest := createCompletionRequest(api_key, role, temperature, model, []Message{{Role: "user", Content: prompt}}, nil)
 
-    completionResponse, err := completionRequest.getCompletionsResponse()
-    if err != nil {
-        pdk.SetError(err)
-        return 1
-    }
+	completionResponse, err := completionRequest.getCompletionsResponse()
+	if err != nil {
+		pdk.SetError(err)
+		return 1
+	}
 
-    pdk.OutputString(completionResponse.Content[0].Text)
-    return 0
+	pdk.OutputString(completionResponse.Content[0].Text)
+	return 0
 }
 
 //go:export completionWithTools
 func CompletionWithTools() int32 {
-    var input CompletionToolInput
-    err := pdk.InputJSON(&input)
-    if err != nil {
-        pdk.Log(pdk.LogError, "Error unmarshalling input: "+err.Error())
-        pdk.SetError(fmt.Errorf("Error unmarshalling input: %v", err))
-        return 1
-    }
+	var input CompletionToolInput
+	err := pdk.InputJSON(&input)
+	if err != nil {
+		pdk.Log(pdk.LogError, "Error unmarshalling input: "+err.Error())
+		pdk.SetError(fmt.Errorf("Error unmarshalling input: %v", err))
+		return 1
+	}
 
-    api_key, role, temperature, model, err := getConfigValues()
-    if err != nil {
-        pdk.Log(pdk.LogError, fmt.Sprintf("Error getting config values: %v", err.Error()))
-        return 1
-    }
+	api_key, role, temperature, model, err := getConfigValues()
+	if err != nil {
+		pdk.Log(pdk.LogError, fmt.Sprintf("Error getting config values: %v", err.Error()))
+		return 1
+	}
 
-    completionRequest := createCompletionRequest(api_key, role, temperature, model, input.Messages, input.Tools)
+	completionRequest := createCompletionRequest(api_key, role, temperature, model, input.Messages, input.Tools)
 
-    completionResponse, err := completionRequest.getCompletionsResponse()
-    if err != nil {
-        pdk.SetError(err)
-        return 1
-    }
+	completionResponse, err := completionRequest.getCompletionsResponse()
+	if err != nil {
+		pdk.SetError(err)
+		return 1
+	}
 
-    if len(completionResponse.Content) < 2 {
-        pdk.SetError(errors.New("no tool response"))
-        return 1
-    }
+	if len(completionResponse.Content) < 2 {
+		pdk.SetError(errors.New("no tool response"))
+		return 1
+	}
 
-    output := Output{
-        Name:  completionResponse.Content[1].Name,
-        Input: completionResponse.Content[1].Input,
-    }
-    
-    pdk.OutputJSON(output)
-    return 0
+	outputs := make([]Output, 0, len(completionResponse.Content)-1)
+
+	for i := 1; i < len(completionResponse.Content); i++ {
+		outputs = append(outputs, Output{
+			Name:  completionResponse.Content[i].Name,
+			Input: completionResponse.Content[i].Input,
+		})
+	}
+
+	pdk.OutputJSON(outputs)
+	return 0
 }
 
 func main() {}
