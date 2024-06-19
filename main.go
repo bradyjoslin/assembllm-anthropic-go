@@ -43,12 +43,13 @@ type Tool struct {
 }
 
 type RequestBody struct {
-	Model       string    `json:"model"`
-	System      string    `json:"system"`
-	MaxTokens   int       `json:"max_tokens"`
-	Temperature float64   `json:"temperature"`
-	Messages    []Message `json:"messages"`
-	Tools       []Tool    `json:"tools,omitempty"`
+	Model       string            `json:"model"`
+	System      string            `json:"system"`
+	MaxTokens   int               `json:"max_tokens"`
+	Temperature float64           `json:"temperature"`
+	Messages    []Message         `json:"messages"`
+	Tools       []Tool            `json:"tools,omitempty"`
+	ToolChoice  map[string]string `json:"tool_choice,omitempty"`
 }
 
 type Content struct {
@@ -218,18 +219,36 @@ func getConfigValues() (string, string, float64, string, error) {
 }
 
 func createCompletionRequest(api_key, role string, temperature float64, model string, messages []Message, tools []Tool) CompletionRequest {
-	return CompletionRequest{
-		Body: RequestBody{
-			Model:       model,
-			Temperature: temperature,
-			MaxTokens:   MAXTOKENS,
-			System:      role,
-			Tools:       tools,
-			Messages:    messages,
-		},
-		ApiKey: api_key,
-		Url:    "https://api.anthropic.com/v1/messages",
+	if len(tools) > 0 {
+		return CompletionRequest{
+			Body: RequestBody{
+				Model:       model,
+				Temperature: temperature,
+				MaxTokens:   MAXTOKENS,
+				System:      role,
+				Tools:       tools,
+				Messages:    messages,
+				ToolChoice:  map[string]string{"type": "any"},
+			},
+			ApiKey: api_key,
+			Url:    "https://api.anthropic.com/v1/messages",
+		}
+	} else {
+		return CompletionRequest{
+			Body: RequestBody{
+				Model:       model,
+				Temperature: temperature,
+				MaxTokens:   MAXTOKENS,
+				System:      role,
+				Messages:    messages,
+				Tools:       nil,
+				ToolChoice:  nil,
+			},
+			ApiKey: api_key,
+			Url:    "https://api.anthropic.com/v1/messages",
+		}
 	}
+
 }
 
 //go:export completion
@@ -280,14 +299,9 @@ func CompletionWithTools() int32 {
 		return 1
 	}
 
-	if len(completionResponse.Content) < 2 {
-		pdk.SetError(errors.New("no tool response"))
-		return 1
-	}
+	outputs := make([]Output, 0, len(completionResponse.Content))
 
-	outputs := make([]Output, 0, len(completionResponse.Content)-1)
-
-	for i := 1; i < len(completionResponse.Content); i++ {
+	for i := 0; i < len(completionResponse.Content); i++ {
 		outputs = append(outputs, Output{
 			Name:  completionResponse.Content[i].Name,
 			Input: completionResponse.Content[i].Input,
