@@ -88,6 +88,10 @@ type Output struct {
 
 var models = []Model{
 	{
+		Name:    "claude-3-5-sonnet-20240620",
+		Aliases: []string{"3-5-sonnet", "sonnet"},
+	},
+	{
 		Name:    "claude-3-opus-20240229",
 		Aliases: []string{"opus"},
 	},
